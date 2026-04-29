@@ -1,5 +1,7 @@
 import os
 import logging
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, filters, ContextTypes
 from supabase import create_client, Client
@@ -86,8 +88,26 @@ async def recibir_foto(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "✅ ¡Reporte añadido al mapa! Gracias por contribuir a mejorar Madrid 🗺️"
     )
 
+# ── Servidor keep-alive (evita que Render duerma el bot) ────────
+class KeepAlive(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot activo")
+    def log_message(self, *args):
+        pass  # silenciar logs del servidor
+
+def arrancar_servidor():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), KeepAlive)
+    server.serve_forever()
+
 # ── Main ────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    # Arrancar servidor en hilo secundario
+    t = threading.Thread(target=arrancar_servidor, daemon=True)
+    t.start()
+
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.LOCATION, recibir_ubicacion))
