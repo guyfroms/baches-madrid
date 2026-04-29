@@ -104,13 +104,17 @@ def arrancar_servidor():
 
 # ── Main ────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    # Arrancar servidor en hilo secundario
+    # Arrancar servidor keep-alive en hilo secundario
     t = threading.Thread(target=arrancar_servidor, daemon=True)
     t.start()
 
+    print("🤖 Bot arrancado...")
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.LOCATION, recibir_ubicacion))
     app.add_handler(MessageHandler(filters.PHOTO, recibir_foto))
-    print("🤖 Bot arrancado...")
+
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app.run_polling()
