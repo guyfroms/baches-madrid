@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Baches Madrid</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <style>
+    :root {
+      --bg:       #0f0f0f;
+      --surface:  #181818;
+      --border:   #2a2a2a;
+      --accent:   #f5c518;
+      --accent2:  #ff4d4d;
+      --text:     #e8e8e8;
+      --muted:    #888;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      z-index: 999;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo h1 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo h1 span { color: var(--accent); }
+
+    .stats {
+      display: flex;
+      gap: 24px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: 'Space Mono', monospace;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .telegram-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #229ED9;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .telegram-btn:hover { opacity: 0.85; }
+
+    /* ── LAYOUT ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+    }
+
+    .baches-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .baches-list::-webkit-scrollbar { width: 4px; }
+    .baches-list::-webkit-scrollbar-track { background: transparent; }
+    .baches-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .bache-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+
+    .bache-card:hover {
+      border-color: var(--accent);
+      transform: translateX(3px);
+    }
+
+    .bache-card.active {
+      border-color: var(--accent);
+      background: #1a1800;
+    }
+
+    .bache-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .bache-desc {
+      font-size: 0.85rem;
+      font-weight: 700;
+      line-height: 1.3;
+      flex: 1;
+    }
+
+    .bache-img {
+      width: 56px; height: 56px;
+      object-fit: cover;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--border);
+    }
+
+    .bache-img-placeholder {
+      width: 56px; height: 56px;
+      border-radius: 5px;
+      border: 1px dashed var(--border);
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      color: var(--muted);
+    }
+
+    .bache-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .bache-date {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+    }
+
+    .confirm-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .confirm-btn:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .confirm-btn.confirmed {
+      border-color: #22c55e;
+      color: #22c55e;
+    }
+
+    /* ── MAPA ── */
+    #map {
+      flex: 1;
+      background: #111;
+    }
+
+    /* ── POPUP ── */
+    .leaflet-popup-content-wrapper {
+      background: var(--surface) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+      color: var(--text) !important;
+      font-family: 'Syne', sans-serif !important;
+      padding: 0 !important;
+    }
+
+    .leaflet-popup-tip { background: var(--surface) !important; }
+    .leaflet-popup-close-button { color: var(--muted) !important; top: 8px !important; right: 8px !important; }
+
+    .popup-content { padding: 16px; min-width: 200px; }
+    .popup-content img { width: 100%; border-radius: 6px; margin-bottom: 10px; max-height: 150px; object-fit: cover; }
+    .popup-desc { font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+    .popup-user { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; font-family: 'Space Mono', monospace; }
+    .popup-confirm {
+      width: 100%;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 8px;
+      border-radius: 5px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .popup-confirm:hover { opacity: 0.85; }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .empty-icon { font-size: 2.5rem; }
+
+    /* ── LOADING ── */
+    .loading {
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-family: 'Space Mono', monospace;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* marker personalizado */
+    .marker-pin {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border: 3px solid #fff;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .marker-pin.high { background: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🕳️</div>
+    <h1>Baches<span>Madrid</span></h1>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="total-count">—</div>
+      <div class="stat-label">Reportes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="confirm-count">—</div>
+      <div class="stat-label">Confirmados</div>
+    </div>
+  </div>
+  <a class="telegram-btn" href="https://t.me/baches_madrid_bot" target="_blank">
+    ✈️ Reportar por Telegram
+  </a>
+</header>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-header">Últimos reportes</div>
+    <div class="baches-list" id="lista"></div>
+  </aside>
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────
+  const SUPABASE_URL = "https://poeobeskktdylyrnbaal.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_01_oeMFCtjqZErEoXWg-VA_U7xGymVW";
+  const API = `${SUPABASE_URL}/rest/v1/baches`;
+  const HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    "Prefer": "return=representation"
+  };
+
+  // ── MAPA ─────────────────────────────────────────────────────
+  const map = L.map("map", { zoomControl: false }).setView([40.4168, -3.7038], 13);
+
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+    attribution: '© OpenStreetMap © CARTO',
+    maxZoom: 19
+  }).addTo(map);
+
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+
+  const markers = {};
+  let baches = [];
+  let activeId = null;
+
+  // ── ICONO ─────────────────────────────────────────────────────
+  function makeIcon(confirmaciones) {
+    const high = confirmaciones >= 5;
+    return L.divIcon({
+      html: `<div class="marker-pin ${high ? 'high' : ''}"></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -28],
+      className: ""
+    });
+  }
+
+  // ── FETCH BACHES ──────────────────────────────────────────────
+  async function fetchBaches() {
+    const lista = document.getElementById("lista");
+    lista.innerHTML = '<div class="loading">Cargando reportes...</div>';
+
+    const res = await fetch(`${API}?order=fecha.desc&limit=100`, { headers: HEADERS });
+    baches = await res.json();
+
+    // Limpiar marcadores anteriores
+    Object.values(markers).forEach(m => m.remove());
+    Object.keys(markers).forEach(k => delete markers[k]);
+
+    if (!baches.length) {
+      lista.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🗺️</div>
+          <strong>Sin reportes todavía</strong>
+          <span>Sé el primero en reportar un bache por Telegram</span>
+        </div>`;
+      document.getElementById("total-count").textContent = "0";
+      document.getElementById("confirm-count").textContent = "0";
+      return;
+    }
+
+    // Stats
+    document.getElementById("total-count").textContent = baches.length;
+    const confirmados = baches.filter(b => b.confirmaciones >= 1).length;
+    document.getElementById("confirm-count").textContent = confirmados;
+
+    // Renderizar lista
+    lista.innerHTML = "";
+    baches.forEach(b => {
+      const card = document.createElement("div");
+      card.className = "bache-card";
+      card.id = `card-${b.id}`;
+      card.innerHTML = `
+        <div class="bache-card-top">
+          <div class="bache-desc">${b.descripcion || "Sin descripción"}</div>
+          ${b.foto_url
+            ? `<img class="bache-img" src="${b.foto_url}" alt="foto" onerror="this.style.display='none'">`
+            : `<div class="bache-img-placeholder">📷</div>`}
+        </div>
+        <div class="bache-meta">
+          <span class="bache-date">${formatDate(b.fecha)}</span>
+          <button class="confirm-btn" onclick="confirmar(event, ${b.id})">
+            ✓ ${b.confirmaciones} confirmado${b.confirmaciones !== 1 ? "s" : ""}
+          </button>
+        </div>`;
+      card.addEventListener("click", (e) => {
+        if (e.target.classList.contains("confirm-btn") || e.target.closest(".confirm-btn")) return;
+        flyTo(b);
+      });
+      lista.appendChild(card);
+
+      // Marcador en mapa
+      const m = L.marker([b.latitud, b.longitud], { icon: makeIcon(b.confirmaciones) })
+        .addTo(map)
+        .bindPopup(makePopup(b));
+      markers[b.id] = m;
+    });
+  }
+
+  // ── POPUP ─────────────────────────────────────────────────────
+  function makePopup(b) {
+    return `
+      <div class="popup-content">
+        ${b.foto_url ? `<img src="${b.foto_url}" alt="foto">` : ""}
+        <div class="popup-desc">${b.descripcion || "Sin descripción"}</div>
+        <div class="popup-user">@${b.usuario_telegram || "anónimo"} · ${formatDate(b.fecha)}</div>
+        <button class="popup-confirm" onclick="confirmar(event, ${b.id})">
+          ✅ Confirmar (${b.confirmaciones})
+        </button>
+      </div>`;
+  }
+
+  // ── FLY TO ────────────────────────────────────────────────────
+  function flyTo(b) {
+    map.flyTo([b.latitud, b.longitud], 17, { duration: 0.8 });
+    markers[b.id]?.openPopup();
+    if (activeId) document.getElementById(`card-${activeId}`)?.classList.remove("active");
+    activeId = b.id;
+    document.getElementById(`card-${b.id}`)?.classList.add("active");
+    document.getElementById(`card-${b.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // ── CONFIRMAR ─────────────────────────────────────────────────
+  async function confirmar(e, id) {
+    e.stopPropagation();
+    const bache = baches.find(b => b.id === id);
+    if (!bache) return;
+
+    const nuevas = bache.confirmaciones + 1;
+    await fetch(`${API}?id=eq.${id}`, {
+      method: "PATCH",
+      headers: HEADERS,
+      body: JSON.stringify({ confirmaciones: nuevas })
+    });
+
+    bache.confirmaciones = nuevas;
+    markers[id]?.setIcon(makeIcon(nuevas));
+    markers[id]?.setPopupContent(makePopup(bache));
+
+    // Actualizar botones
+    document.querySelectorAll(`[onclick="confirmar(event, ${id})"]`).forEach(btn => {
+      btn.textContent = `✓ ${nuevas} confirmado${nuevas !== 1 ? "s" : ""}`;
+      btn.classList.add("confirmed");
+    });
+
+    document.getElementById("confirm-count").textContent =
+      baches.filter(b => b.confirmaciones >= 1).length;
+  }
+
+  // ── UTILS ─────────────────────────────────────────────────────
+  function formatDate(iso) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────
+  fetchBaches();
+  setInterval(fetchBaches, 30000); // refresca cada 30s
+</script>
+</body>
+</html>
