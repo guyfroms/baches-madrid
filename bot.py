@@ -65,7 +65,17 @@ async def recibir_ubicacion(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     datos = fotos_temp.pop(user_id)
-    loc = update.message.location
+
+    # Soportar location normal y venue
+    if update.message.location:
+        lat = update.message.location.latitude
+        lon = update.message.location.longitude
+    elif update.message.venue:
+        lat = update.message.venue.location.latitude
+        lon = update.message.venue.location.longitude
+    else:
+        await update.message.reply_text("⚠️ No pude leer la ubicación, inténtalo de nuevo.")
+        return
 
     # Subir foto a Supabase Storage
     filename = f"{user_id}_{datos['foto_id']}.jpg"
@@ -83,8 +93,8 @@ async def recibir_ubicacion(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Guardar en base de datos
     supabase.table("baches").insert({
         "foto_url":         foto_url,
-        "latitud":          loc.latitude,
-        "longitud":         loc.longitude,
+        "latitud":          lat,
+        "longitud":         lon,
         "descripcion":      datos["descripcion"],
         "usuario_telegram": username,
         "confirmaciones":   0,
@@ -123,5 +133,5 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.PHOTO, recibir_foto))
-    app.add_handler(MessageHandler(filters.LOCATION, recibir_ubicacion))
+    app.add_handler(MessageHandler(filters.LOCATION | filters.VENUE, recibir_ubicacion))
     app.run_polling()
