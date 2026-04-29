@@ -8,9 +8,9 @@ from supabase import create_client, Client
 import httpx
 
 # ── Configuración ──────────────────────────────────────────────
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8664330814:AAF8Kkjf0zmI10pfXywfU_3KcHoHhcyD0sg")
-SUPABASE_URL   = os.environ.get("SUPABASE_URL",   "https://poeobeskktdylyrnbaal.supabase.co")
-SUPABASE_KEY   = os.environ.get("SUPABASE_KEY",   "sb_publishable_01_oeMFCtjqZErEoXWg-VA_U7xGymVW")
+TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
+SUPABASE_URL   = os.environ["SUPABASE_URL"]
+SUPABASE_KEY   = os.environ["SUPABASE_KEY"]
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 logging.basicConfig(level=logging.INFO)
