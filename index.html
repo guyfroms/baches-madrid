@@ -471,7 +471,7 @@
         </div>
         <div class="bache-meta">
           <span class="bache-date">${formatDate(b.fecha)}</span>
-          <button class="confirm-btn" onclick="confirmar(event, ${b.id})">
+          <button class="confirm-btn ${confirmados.has(b.id) ? 'confirmed' : ''}" onclick="confirmar(event, ${b.id})">
             ✓ ${b.confirmaciones} confirmado${b.confirmaciones !== 1 ? "s" : ""}
           </button>
         </div>`;
@@ -512,28 +512,56 @@
     document.getElementById(`card-${b.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
+  // ── CONFIRMADOS EN ESTA SESIÓN ────────────────────────────────
+  const confirmados = new Set(
+    JSON.parse(sessionStorage.getItem("confirmados") || "[]")
+  );
+
+  function guardarConfirmados() {
+    sessionStorage.setItem("confirmados", JSON.stringify([...confirmados]));
+  }
+
   // ── CONFIRMAR ─────────────────────────────────────────────────
   async function confirmar(e, id) {
     e.stopPropagation();
     const bache = baches.find(b => b.id === id);
     if (!bache) return;
 
-    const nuevas = bache.confirmaciones + 1;
-    await fetch(`${API}?id=eq.${id}`, {
-      method: "PATCH",
-      headers: HEADERS,
-      body: JSON.stringify({ confirmaciones: nuevas })
-    });
-
-    bache.confirmaciones = nuevas;
-    markers[id]?.setIcon(makeIcon(nuevas));
-    markers[id]?.setPopupContent(makePopup(bache));
-
-    // Actualizar botones
-    document.querySelectorAll(`[onclick="confirmar(event, ${id})"]`).forEach(btn => {
-      btn.textContent = `✓ ${nuevas} confirmado${nuevas !== 1 ? "s" : ""}`;
-      btn.classList.add("confirmed");
-    });
+    if (confirmados.has(id)) {
+      // Ya confirmado — quitar confirmación
+      confirmados.delete(id);
+      guardarConfirmados();
+      const nuevas = Math.max(0, bache.confirmaciones - 1);
+      await fetch(`${API}?id=eq.${id}`, {
+        method: "PATCH",
+        headers: HEADERS,
+        body: JSON.stringify({ confirmaciones: nuevas })
+      });
+      bache.confirmaciones = nuevas;
+      markers[id]?.setIcon(makeIcon(nuevas));
+      markers[id]?.setPopupContent(makePopup(bache));
+      document.querySelectorAll(`[onclick="confirmar(event, ${id})"]`).forEach(btn => {
+        btn.textContent = `✓ ${nuevas} confirmado${nuevas !== 1 ? "s" : ""}`;
+        btn.classList.remove("confirmed");
+      });
+    } else {
+      // Añadir confirmación
+      confirmados.add(id);
+      guardarConfirmados();
+      const nuevas = bache.confirmaciones + 1;
+      await fetch(`${API}?id=eq.${id}`, {
+        method: "PATCH",
+        headers: HEADERS,
+        body: JSON.stringify({ confirmaciones: nuevas })
+      });
+      bache.confirmaciones = nuevas;
+      markers[id]?.setIcon(makeIcon(nuevas));
+      markers[id]?.setPopupContent(makePopup(bache));
+      document.querySelectorAll(`[onclick="confirmar(event, ${id})"]`).forEach(btn => {
+        btn.textContent = `✓ ${nuevas} confirmado${nuevas !== 1 ? "s" : ""}`;
+        btn.classList.add("confirmed");
+      });
+    }
 
     document.getElementById("confirm-count").textContent =
       baches.filter(b => b.confirmaciones >= 1).length;
